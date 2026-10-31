@@ -375,6 +375,20 @@ input:focus-visible {
   color: #418253;
 }
 
+.admin-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #39774a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-label svg {
+  width: 15px;
+  height: 15px;
+}
+
 .account-actions button {
   border-color: #e2e9e2;
   color: #506055;
@@ -740,6 +754,185 @@ input:focus-visible {
   animation: spin 750ms linear infinite;
 }
 
+.admin-content {
+  width: min(1000px, calc(100% - 48px));
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.admin-stat-card {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 14px !important;
+  padding: 18px !important;
+  border-color: #e6ede5 !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 5px 18px #203b2807 !important;
+}
+
+.admin-stat-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: #edf6ed;
+  color: #428355;
+}
+
+.admin-stat-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.admin-stat-card > div:last-child {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-stat-card span {
+  color: #849087;
+  font-size: 11px;
+}
+
+.admin-stat-card strong {
+  color: #2e4033;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.user-table-card {
+  overflow: hidden;
+  gap: 0 !important;
+  padding: 0 !important;
+  border-color: #e6ede5 !important;
+  border-radius: 13px !important;
+  background: #fff !important;
+  box-shadow: 0 8px 26px #28402c08 !important;
+}
+
+.user-table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 21px 22px;
+  border-bottom: 1px solid #edf1ec;
+}
+
+.user-table-heading h2 {
+  margin: 0 0 5px;
+  color: #2e4033;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.user-table-heading p {
+  margin: 0;
+  color: #89948c;
+  font-size: 11px;
+}
+
+.user-search {
+  position: relative;
+  width: min(250px, 42%);
+}
+
+.user-search > svg {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  width: 15px;
+  height: 15px;
+  color: #89948c;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.user-search input {
+  height: 37px !important;
+  padding-left: 34px !important;
+  border-color: #e5ebe4 !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+}
+
+.user-table-scroll {
+  overflow-x: auto;
+}
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.user-table th {
+  padding: 12px 20px;
+  background: #f8faf7;
+  color: #849087;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.user-table td {
+  padding: 14px 20px;
+  border-top: 1px solid #edf1ec;
+  color: #77837a;
+  font-size: 11px;
+}
+
+.user-table .user-name {
+  color: #34473a;
+  font-weight: 600;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 650;
+  text-transform: capitalize;
+}
+
+.role-badge.user {
+  background: #f0f3f0;
+  color: #66736a;
+}
+
+.role-badge.admin {
+  background: #eaf5ec;
+  color: #34794a;
+}
+
+.user-table .user-table-empty {
+  height: 110px;
+  color: #89948c;
+  text-align: center;
+}
+
+.user-table-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #edf1ec;
+  color: #89948c;
+  font-size: 10px;
+}
+
+.admin-error {
+  margin: 14px 20px;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -808,6 +1001,48 @@ input:focus-visible {
 
   .secure-label {
     display: none;
+  }
+
+  .admin-label {
+    display: none;
+  }
+
+  .admin-content {
+    width: calc(100% - 32px);
+  }
+
+  .admin-stats {
+    gap: 9px;
+  }
+
+  .admin-stat-card {
+    gap: 9px !important;
+    padding: 13px !important;
+  }
+
+  .admin-stat-icon {
+    width: 35px;
+    height: 35px;
+  }
+
+  .admin-stat-card strong {
+    font-size: 19px;
+  }
+
+  .user-table-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 17px;
+  }
+
+  .user-search {
+    width: 100%;
+  }
+
+  .user-table th,
+  .user-table td {
+    padding-right: 14px;
+    padding-left: 14px;
   }
 
   .upload-card-content {

@@ -33,6 +33,14 @@ export type FileRecord = {
   updatedAt?: string;
 };
 
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: "user" | "admin";
+  createdAt?: string;
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -117,6 +125,16 @@ export async function signIn(credentials: AuthCredentials): Promise<string> {
   });
   if (typeof response.data !== "string" || response.data.length === 0) {
     throw new ApiError("The sign-in response did not include a valid token.", 200);
+  }
+  return response.data;
+}
+
+export async function listUsers(token: string): Promise<AdminUser[]> {
+  const response = await request<AdminUser[]>("/admin/users", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!Array.isArray(response.data)) {
+    throw new ApiError("The API response did not include a user list.", 200);
   }
   return response.data;
 }

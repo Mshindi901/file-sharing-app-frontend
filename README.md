@@ -40,6 +40,10 @@ calling its own deployment instead of the backend. Confirm the deployed
 `api-config.json` contains the backend URL ending in `/api`, then redeploy the
 frontend.
 
+Users with an admin role are sent to `/admin`, where the protected admin users
+endpoint populates the searchable account table. Vercel rewrites `/admin` to
+the app entry point so the route also works after a refresh.
+
 To type check:
 
 ```bash

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowUpFromLine,
   Check,
@@ -11,9 +11,11 @@ import {
   FolderOpen,
   HardDrive,
   LogOut,
+  Search,
   ShieldCheck,
   Trash2,
   UploadCloud,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,9 +26,11 @@ import {
   deleteFile,
   getShareUrl,
   listFiles,
+  listUsers,
   signIn,
   signUp,
   uploadFile,
+  type AdminUser,
   type FileRecord,
 } from "@/lib/api";
 import "./index.css";
@@ -36,20 +40,46 @@ const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 type SessionState = {
   token: string | null;
+  role: "user" | "admin" | null;
   expired: boolean;
 };
+
+function getTokenRole(token: string): SessionState["role"] {
+  try {
+    const encodedPayload = token.split(".")[1];
+    if (!encodedPayload) return null;
+    const normalizedPayload = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
+    const decodedPayload = atob(
+      normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, "="),
+    );
+    const bytes = Uint8Array.from(decodedPayload, (character) => character.charCodeAt(0));
+    const claims: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (
+      typeof claims === "object" &&
+      claims !== null &&
+      "role" in claims &&
+      (claims.role === "user" || claims.role === "admin")
+    ) {
+      return claims.role;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
 
 function readSession(): SessionState {
   const token = window.localStorage.getItem("file-share-token");
   const expiresAt = Number(window.localStorage.getItem("file-share-token-expires"));
 
-  if (!token) return { token: null, expired: false };
-  if (!expiresAt || expiresAt <= Date.now()) {
+  if (!token) return { token: null, role: null, expired: false };
+  const role = getTokenRole(token);
+  if (!expiresAt || expiresAt <= Date.now() || !role) {
     window.localStorage.removeItem("file-share-token");
     window.localStorage.removeItem("file-share-token-expires");
-    return { token: null, expired: true };
+    return { token: null, role: null, expired: true };
   }
-  return { token, expired: false };
+  return { token, role, expired: false };
 }
 
 function formatBytes(bytes: number | string): string {
@@ -91,6 +121,149 @@ function messageFor(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong. Please try again.";
 }
 
+function AdminDashboard({
+  token,
+  onSignOut,
+}: {
+  token: string;
+  onSignOut: (message?: string) => void;
+}) {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [search, setSearch] = useState("");
+  const [busy, setBusy] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadUsers = useCallback(async () => {
+    setBusy(true);
+    setError("");
+    try {
+      setUsers(await listUsers(token));
+    } catch (loadError) {
+      if (loadError instanceof ApiError && loadError.status === 401) {
+        onSignOut("Your session is no longer valid. Please sign in again.");
+      } else {
+        setError(messageFor(loadError));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }, [onSignOut, token]);
+
+  useEffect(() => {
+    void loadUsers();
+  }, [loadUsers]);
+
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const visibleUsers = users.filter((user) =>
+    `${user.name} ${user.email} ${user.role}`.toLocaleLowerCase().includes(normalizedSearch),
+  );
+  const adminCount = users.filter((user) => user.role === "admin").length;
+
+  return (
+    <main className="dashboard-page admin-page">
+      <header className="site-header dashboard-header">
+        <a className="brand" href="/" aria-label="Keepsake home">
+          <span className="brand-mark"><FolderOpen aria-hidden="true" /></span>
+          <span>Keepsake</span>
+        </a>
+        <div className="account-actions">
+          <span className="admin-label"><ShieldCheck aria-hidden="true" /> Admin dashboard</span>
+          <Button variant="outline" size="sm" onClick={() => onSignOut()}>
+            <LogOut aria-hidden="true" /> Sign out
+          </Button>
+        </div>
+      </header>
+
+      <section className="dashboard-content admin-content">
+        <div className="dashboard-heading">
+          <div>
+            <div className="eyebrow"><ShieldCheck aria-hidden="true" /> ADMINISTRATION</div>
+            <h1>User management</h1>
+            <p>Review registered accounts and their access roles.</p>
+          </div>
+        </div>
+
+        <div className="admin-stats">
+          <Card className="admin-stat-card">
+            <div className="admin-stat-icon"><Users aria-hidden="true" /></div>
+            <div><span>Total accounts</span><strong>{busy ? "—" : users.length}</strong></div>
+          </Card>
+          <Card className="admin-stat-card">
+            <div className="admin-stat-icon"><ShieldCheck aria-hidden="true" /></div>
+            <div><span>Administrators</span><strong>{busy ? "—" : adminCount}</strong></div>
+          </Card>
+        </div>
+
+        <Card className="user-table-card">
+          <div className="user-table-heading">
+            <div>
+              <h2>All users</h2>
+              <p>Account details and assigned roles</p>
+            </div>
+            <div className="user-search">
+              <Search aria-hidden="true" />
+              <Input
+                type="search"
+                aria-label="Search users"
+                placeholder="Search users"
+                value={search}
+                onChange={(event) => setSearch(event.currentTarget.value)}
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="message message-error admin-error" role="alert">
+              <span>{error}</span>
+              <Button variant="outline" size="sm" onClick={() => void loadUsers()}>Try again</Button>
+            </div>
+          )}
+
+          {busy ? (
+            <div className="files-state" role="status"><span className="loading-spinner" /> Loading users…</div>
+          ) : error ? null : (
+            <div className="user-table-scroll">
+              <table className="user-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email address</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Joined</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td className="user-name">{user.name}</td>
+                      <td>{user.email}</td>
+                      <td><span className={`role-badge ${user.role}`}>{user.role}</span></td>
+                      <td>{formatDate(user.createdAt)}</td>
+                    </tr>
+                  ))}
+                  {visibleUsers.length === 0 && (
+                    <tr>
+                      <td className="user-table-empty" colSpan={4}>
+                        {users.length === 0 ? "No accounts have been registered yet." : "No users match your search."}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {!busy && !error && (
+            <div className="user-table-footer">
+              Showing {visibleUsers.length} of {users.length} {users.length === 1 ? "account" : "accounts"}
+            </div>
+          )}
+        </Card>
+      </section>
+      <footer className="site-footer">Keepsake administration</footer>
+    </main>
+  );
+}
+
 export function App() {
   const [initialSession] = useState(readSession);
   const [session, setSession] = useState<SessionState>(initialSession);
@@ -108,18 +281,28 @@ export function App() {
   const [copiedFileId, setCopiedFileId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const signOut = (message = "") => {
+  const signOut = useCallback((message = "") => {
     window.localStorage.removeItem("file-share-token");
     window.localStorage.removeItem("file-share-token-expires");
-    setSession({ token: null, expired: false });
+    setSession({ token: null, role: null, expired: false });
     setFiles([]);
     setNotice(message);
     setAuthError("");
     setActionError("");
-  };
+    window.history.replaceState(null, "", "/");
+  }, []);
 
   useEffect(() => {
-    if (!session.token) {
+    if (session.role) {
+      const targetPath = session.role === "admin" ? "/admin" : "/";
+      if (window.location.pathname !== targetPath) {
+        window.history.replaceState(null, "", targetPath);
+      }
+    }
+  }, [session.role]);
+
+  useEffect(() => {
+    if (!session.token || session.role !== "user") {
       setFiles([]);
       setFilesBusy(false);
       return;
@@ -147,7 +330,7 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [session.token]);
+  }, [session.role, session.token, signOut]);
 
   const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -166,10 +349,14 @@ export function App() {
         setNotice("Your account is ready. Sign in to continue.");
       } else {
         const token = await signIn({ email, password });
+        const role = getTokenRole(token);
+        if (!role) {
+          throw new Error("The sign-in response contains an invalid account role.");
+        }
         const expiresAt = Date.now() + SESSION_DURATION_MS;
         window.localStorage.setItem("file-share-token", token);
         window.localStorage.setItem("file-share-token-expires", String(expiresAt));
-        setSession({ token, expired: false });
+        setSession({ token, role, expired: false });
       }
     } catch (error) {
       setAuthError(messageFor(error));
@@ -346,6 +533,10 @@ export function App() {
         <footer className="site-footer">Made for keeping the important things close.</footer>
       </main>
     );
+  }
+
+  if (session.role === "admin") {
+    return <AdminDashboard token={session.token} onSignOut={signOut} />;
   }
 
   return (
