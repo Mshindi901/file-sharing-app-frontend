@@ -62,6 +62,16 @@ async function request<T>(
   }
 
   const responseText = await response.text();
+  if (
+    response.status === 404 &&
+    response.headers.get("x-vercel-error") === "NOT_FOUND"
+  ) {
+    throw new ApiError(
+      "The frontend deployment received this API request because no backend URL is configured. Set BUN_PUBLIC_API_BASE_URL in the Vercel project to your deployed backend URL ending in /api, then redeploy the frontend.",
+      response.status,
+    );
+  }
+
   let payload: unknown;
   if (responseText) {
     try {

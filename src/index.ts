@@ -1,12 +1,16 @@
 import { serve } from "bun";
 import index from "./index.html";
 
+const apiBaseUrl =
+  process.env.BUN_PUBLIC_API_BASE_URL ||
+  "https://file-sharing-app-backend-sdqm.onrender.com/api";
+
 const server = serve({
   routes: {
     "/api-config.json": {
       GET() {
         return Response.json({
-          apiBaseUrl: process.env.BUN_PUBLIC_API_BASE_URL || "/api",
+          apiBaseUrl,
         });
       },
     },
