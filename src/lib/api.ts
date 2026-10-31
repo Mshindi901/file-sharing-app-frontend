@@ -64,7 +64,7 @@ async function request<T>(
     response = await fetch(`${API_BASE_URL}${path}`, options);
   } catch {
     throw new ApiError(
-      `Couldn't reach the API at ${API_BASE_URL}. Check the backend is running and BUN_PUBLIC_API_BASE_URL is configured correctly. A browser CORS policy can also block this request.`,
+      "Couldn't connect to the service. Check your connection and try again.",
       0,
     );
   }
@@ -92,10 +92,8 @@ async function request<T>(
   const envelope = isRecord(payload) ? payload : undefined;
   const serverMessage =
     envelope && typeof envelope.message === "string"
-      ? envelope.message
-      : typeof payload === "string"
-        ? payload
-        : "";
+      ? envelope.message.replace(/https?:\/\/[^\s"'<>]+/gi, "[service URL]")
+      : "";
 
   if (!response.ok) {
     throw new ApiError(

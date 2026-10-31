@@ -27,8 +27,8 @@ export function APITester() {
 
       const data: unknown = await res.json();
       responseInputRef.current!.value = JSON.stringify(data, null, 2);
-    } catch (error) {
-      responseInputRef.current!.value = String(error);
+    } catch {
+      responseInputRef.current!.value = "Request failed. Check the endpoint and try again.";
     }
   };
 
